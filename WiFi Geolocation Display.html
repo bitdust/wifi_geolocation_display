@@ -17,7 +17,7 @@
         <div class="row">
             <div class="col-md-2 d-none d-md-block bg-light sidebar">
                 <h1 class="h4">AP MACs</h1>
-                <textarea class="form-control" rows="20" id="MAC_str" type="text"
+                <textarea class="form-control" rows="10" id="MAC_str" type="text"
                     placeholder="Add muliti-line MACs here."></textarea>
                 <button type="button" class="btn btn-primary" onclick="plotGEO()">Submit</button>
                 <button type="button" class="btn btn-warning"
@@ -26,12 +26,8 @@
                 <h1 class="h4">Location Result</h1>
                 <textarea class="form-control" rows="8" id="loc_result" type="text"></textarea>
             </div>
-            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
-                <div class="embed-responsive embed-responsive-16by9">
-                    <div id="map-container" class="embed-responsive-item">
-                        <div id="map"></div>
-                    </div>
-                </div>
+            <main role="main" class="col-md-10 ml-sm-auto col-lg-10 px-4">
+                <div id="map"></div>
             </main>
         </div>
     </div>

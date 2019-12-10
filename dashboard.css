@@ -71,11 +71,13 @@ body {
  */
 
 [role="main"] {
+  height: 100vh;
   padding-top: 133px; /* Space for fixed navbar */
 }
 
 @media (min-width: 768px) {
   [role="main"] {
+    height: 100vh;
     padding-top: 48px; /* Space for fixed navbar */
   }
 }
