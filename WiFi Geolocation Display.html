@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="jquery.min.js"></script>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="bootstrap.min.js"></script>
+    <script src="index.js"></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">WiFi Geolocation Display</a>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 d-none d-md-block bg-light sidebar">
+                <h1 class="h4">AP MACs</h1>
+                <textarea class="form-control" rows="20" id="MAC_str" type="text"
+                    placeholder="Add muliti-line MACs here."></textarea>
+                <button type="button" class="btn btn-primary" onclick="plotGEO()">Submit</button>
+                <button type="button" class="btn btn-warning"
+                    onclick="document.getElementById('MAC_str').value=''">Clean All</button>
+                <hr>
+                <h1 class="h4">Location Result</h1>
+                <textarea class="form-control" rows="8" id="loc_result" type="text"></textarea>
+            </div>
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="embed-responsive embed-responsive-16by9">
+                    <div id="map-container" class="embed-responsive-item">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        var map = null;
+        var markersArray = [];
+        var styleArray = [{
+                "featureType": "administrative.land_parcel",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "administrative.neighborhood",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "poi",
+                "elementType": "labels.text",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "poi.business",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "road",
+                "elementType": "labels",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "road",
+                "elementType": "labels.icon",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "transit",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            },
+            {
+                "featureType": "water",
+                "elementType": "labels.text",
+                "stylers": [{
+                    "visibility": "off"
+                }]
+            }
+        ];
+        // Initialize and add the map
+        function initMap() {
+            // The location of Uluru
+            var hangzhou = {
+                lat: 30,
+                lng: 120
+            };
+            // The map, centered at Uluru
+            map = new google.maps.Map(
+                document.getElementById('map'), {
+                    zoom: 16,
+                    center: hangzhou,
+                    styles: styleArray
+                });
+        }
+
+        function plotGEO() {
+            var macs = document.getElementById("MAC_str").value.split("\n");
+            var mac_json = {
+                "considerIp": "false",
+                "wifiAccessPoints": []
+            };
+            for (i of macs) {
+                if (i.length > 0) {
+                    mac_json.wifiAccessPoints.push({
+                        "macAddress": i,
+                        "signalStrength": -43,
+                        "signalToNoiseRatio": 0
+                    });
+                }
+            }
+            console.log(mac_json);
+            document.getElementById('loc_result').value = ''
+            var httpRequest = new XMLHttpRequest();
+            /* Replace the value of the key parameter with your own API key. */
+            httpRequest.open('POST',
+                'https://www.googleapis.com/geolocation/v1/geolocate?key=API_KEY',
+                true);
+            httpRequest.setRequestHeader("Content-type", "application/json");
+            httpRequest.send(JSON.stringify(mac_json)); //send request
+            /**
+             * get response
+             */
+            httpRequest.onreadystatechange = function () {
+                if (httpRequest.readyState == 4) {
+                    if (httpRequest.status == 200) {
+                        var resp_str = httpRequest.responseText; //get resp str
+                        console.log(resp_str);
+                        var resp_json = JSON.parse(resp_str);
+                        var wgs_lat = resp_json.location.lat;
+                        var wgs_lng = resp_json.location.lng;
+                        var gcj_lnglat = coordtransform.wgs84togcj02(wgs_lng, wgs_lat);
+                        loc = {
+                            lat: gcj_lnglat[1],
+                            lng: gcj_lnglat[0]
+                        }
+                        var radius = resp_json.accuracy;
+                        document.getElementById("loc_result").value = resp_str;
+                        plotCircle(loc, radius);
+                    } else if (httpRequest.status == 404) {
+                        alert("location not found.");
+                    } else {
+                        alert("error code: " + httpRequest.status);
+                    }
+                }
+            };
+        }
+
+        function plotCircle(location, radius) {
+            clearOverlays();
+            var bigCircle = new google.maps.Circle({
+                strokeColor: '#0066ff',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#0099ff',
+                fillOpacity: 0.35,
+                map: map,
+                center: location,
+                radius: radius
+            });
+            markersArray.push(bigCircle);
+            var littleCircle = new google.maps.Circle({
+                strokeColor: '#0066ff',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#0066ff',
+                fillOpacity: 1,
+                map: map,
+                center: location,
+                radius: radius / 4
+            });
+            markersArray.push(littleCircle);
+            map.panTo(location);
+            map.setZoom(16);
+        }
+
+        function clearOverlays() {
+            for (var i = 0; i < markersArray.length; i++) {
+                markersArray[i].setMap(null);
+            }
+            markersArray.length = 0;
+        }
+    </script>
+    <!-- Replace the value of the key parameter with your own API key. -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=API_KEY&callback=initMap">
+    </script>
+
+</body>
+
+</html>
